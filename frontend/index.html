@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Driver Feedback Intelligence AI</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <h1>🚗 Driver Feedback Intelligence AI</h1>
+
+    <div class="container">
+
+        <!-- TEXT ANALYSIS -->
+        <div class="card">
+            <h3>✍️ Analyze Single Review</h3>
+            <textarea id="review" placeholder="Enter driver review..."></textarea>
+            <button onclick="analyzeReview()">Analyze</button>
+            <p id="result"></p>
+        </div>
+
+        <!-- CSV UPLOAD -->
+        <div class="card">
+            <h3>📁 Upload CSV File</h3>
+            <input type="file" id="csvFile" accept=".csv">
+            <button onclick="uploadCSV()">Analyze CSV</button>
+        </div>
+
+        <!-- DASHBOARD COUNTS -->
+        <div class="card">
+            <h3>📊 Sentiment Dashboard</h3>
+            <p>😊 Positive: <span id="posCount">0</span></p>
+            <p>😡 Negative: <span id="negCount">0</span></p>
+            <p>😐 Neutral: <span id="neuCount">0</span></p>
+        </div>
+
+        <!-- PIE CHART -->
+        <div class="card">
+            <h3>📈 Sentiment Distribution</h3>
+            <canvas id="chart"></canvas>
+        </div>
+
+        <!-- TREND GRAPH -->
+        <div class="card">
+            <h3>📊 Sentiment Trend</h3>
+            <canvas id="trendChart"></canvas>
+        </div>
+
+        <!-- KEYWORDS -->
+        <div class="card">
+            <h3>🔥 Top Keywords</h3>
+            <ul id="keywords"></ul>
+        </div>
+
+        <!-- INSIGHTS -->
+        <div class="card">
+            <h3>🧠 Insights</h3>
+            <p id="insights">No insights yet</p>
+        </div>
+
+    </div>
+
+    <!-- JS -->
+    <script src="script.js"></script>
+
+</body>
+</html>
