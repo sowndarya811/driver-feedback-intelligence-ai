@@ -3,5 +3,6 @@ uvicorn
 tensorflow
 numpy
 pandas
-h5py
+scikit-learn
+pickle-mixin
 python-multipart
