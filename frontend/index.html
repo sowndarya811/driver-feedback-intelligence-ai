@@ -1,73 +1,252 @@
+<!-- frontend/index.html -->
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <title>Driver Feedback Intelligence AI</title>
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
-    <!-- Chart.js -->
+    <title>
+        Driver Feedback Intelligence AI
+    </title>
+
+    <link rel="stylesheet"
+        href="style.css">
+
+    <!-- CHART JS -->
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- CONFETTI -->
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
 </head>
 
 <body>
 
-    <h1>🚗 Driver Feedback Intelligence AI</h1>
-
     <div class="container">
 
-        <!-- TEXT ANALYSIS -->
-        <div class="card">
-            <h3>✍️ Analyze Single Review</h3>
-            <textarea id="review" placeholder="Enter driver review..."></textarea>
-            <button onclick="analyzeReview()">Analyze</button>
-            <p id="result"></p>
+        <!-- TITLE -->
+
+        <div class="title-container">
+
+            <span class="car">🚗</span>
+
+            <h1 id="typingTitle"></h1>
+
         </div>
 
-        <!-- CSV UPLOAD -->
-        <div class="card">
-            <h3>📁 Upload CSV File</h3>
-            <input type="file" id="csvFile" accept=".csv">
-            <button onclick="uploadCSV()">Analyze CSV</button>
+        <!-- DATE -->
+
+        <h3 id="dateTime"></h3>
+
+        <!-- THEME -->
+
+        <button class="theme-btn"
+            onclick="toggleTheme()">
+
+            🌙 Toggle Theme
+
+        </button>
+
+        <!-- INPUT -->
+
+        <textarea id="reviewInput"
+            placeholder="Enter your review here..."></textarea>
+
+        <!-- LOADING -->
+
+        <p id="loadingText"></p>
+
+        <!-- BUTTONS -->
+
+        <div class="btn-group">
+
+            <button class="analyze-btn"
+                onclick="analyzeSentiment()">
+
+                🔍 Analyze
+
+            </button>
+
+            <button class="voice-btn"
+                onclick="startVoice()">
+
+                🎤 Voice Input
+
+            </button>
+
+            <button class="download-btn"
+                onclick="downloadReport()">
+
+                📄 Download Report
+
+            </button>
+
+            <button class="csv-btn"
+                onclick="exportCSV()">
+
+                📁 Export CSV
+
+            </button>
+
+            <button class="clear-btn"
+                onclick="clearAll()">
+
+                🧹 Clear
+
+            </button>
+
         </div>
 
-        <!-- DASHBOARD COUNTS -->
-        <div class="card">
-            <h3>📊 Sentiment Dashboard</h3>
-            <p>😊 Positive: <span id="posCount">0</span></p>
-            <p>😡 Negative: <span id="negCount">0</span></p>
-            <p>😐 Neutral: <span id="neuCount">0</span></p>
+        <!-- RESULT -->
+
+        <div id="resultBox">
+
+            <h1 id="emoji">😊</h1>
+
+            <h2 id="sentimentText"></h2>
+
+            <p id="confidenceText"></p>
+
+            <!-- METER -->
+
+            <div class="meter">
+
+                <div id="meterFill"></div>
+
+            </div>
+
         </div>
 
-        <!-- PIE CHART -->
-        <div class="card">
-            <h3>📈 Sentiment Distribution</h3>
-            <canvas id="chart"></canvas>
+        <!-- STATUS CARDS -->
+
+        <div class="status-cards">
+
+            <div class="status-card positive-card">
+
+                <h2>😊 Positive</h2>
+
+                <p id="positiveCountText">0</p>
+
+            </div>
+
+            <div class="status-card negative-card">
+
+                <h2>😡 Negative</h2>
+
+                <p id="negativeCountText">0</p>
+
+            </div>
+
+            <div class="status-card neutral-card">
+
+                <h2>😐 Neutral</h2>
+
+                <p id="neutralCountText">0</p>
+
+            </div>
+
         </div>
 
-        <!-- TREND GRAPH -->
-        <div class="card">
-            <h3>📊 Sentiment Trend</h3>
-            <canvas id="trendChart"></canvas>
+        <!-- ANALYTICS -->
+
+        <div class="percentage-box">
+
+            <h2>📊 Sentiment Analytics</h2>
+
+            <p>
+                😊 Positive:
+                <span id="positivePercent">0%</span>
+            </p>
+
+            <p>
+                😡 Negative:
+                <span id="negativePercent">0%</span>
+            </p>
+
+            <p>
+                😐 Neutral:
+                <span id="neutralPercent">0%</span>
+            </p>
+
         </div>
 
-        <!-- KEYWORDS -->
-        <div class="card">
-            <h3>🔥 Top Keywords</h3>
-            <ul id="keywords"></ul>
+        <!-- AI INSIGHT -->
+
+        <div class="insight-box">
+
+            <h3>🧠 AI Insight</h3>
+
+            <p id="aiInsight">
+
+                Waiting for analysis...
+
+            </p>
+
         </div>
 
-        <!-- INSIGHTS -->
-        <div class="card">
-            <h3>🧠 Insights</h3>
-            <p id="insights">No insights yet</p>
+        <!-- SMART SUMMARY -->
+
+        <div class="insight-box">
+
+            <h3>⭐ Smart Review Summary</h3>
+
+            <p id="smartSummary">
+
+                Waiting for reviews...
+
+            </p>
+
+        </div>
+
+        <!-- CHARTS -->
+
+        <div class="charts">
+
+            <div class="chart-card">
+
+                <canvas id="pieChart"></canvas>
+
+            </div>
+
+            <div class="chart-card">
+
+                <canvas id="lineChart"></canvas>
+
+            </div>
+
+        </div>
+
+        <!-- TOTAL REVIEWS -->
+
+        <h3>
+
+            Total Reviews Analyzed:
+
+            <span id="reviewCount">0</span>
+
+        </h3>
+
+        <!-- HISTORY -->
+
+        <div class="insight-box">
+
+            <h3>📜 Prediction History</h3>
+
+            <ul id="historyList"></ul>
+
         </div>
 
     </div>
 
-    <!-- JS -->
     <script src="script.js"></script>
 
 </body>
+
 </html>

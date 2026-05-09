@@ -1,189 +1,615 @@
-// -----------------------------
-// GLOBAL VARIABLES
-// -----------------------------
+// frontend/script.js
+
 let positiveCount = 0;
 let negativeCount = 0;
 let neutralCount = 0;
+let totalReviews = 0;
 
-let sentimentChart;
-let trendChart;
+let bestReview = "";
+let worstReview = "";
 
+/* PIE CHART */
 
-// -----------------------------
-// INIT CHARTS
-// -----------------------------
-window.onload = function () {
-
-    // PIE CHART
-    const ctx = document.getElementById("chart").getContext("2d");
-
-    sentimentChart = new Chart(ctx, {
+const pieChart = new Chart(
+    document.getElementById("pieChart"),
+    {
         type: "pie",
         data: {
-            labels: ["Positive", "Negative", "Neutral"],
+            labels: [
+                "Positive",
+                "Negative",
+                "Neutral"
+            ],
             datasets: [{
                 data: [0, 0, 0]
             }]
         }
-    });
+    }
+);
 
-    // TREND CHART
-    const trendCtx = document.getElementById("trendChart").getContext("2d");
+/* LINE CHART */
 
-    trendChart = new Chart(trendCtx, {
+const lineChart = new Chart(
+    document.getElementById("lineChart"),
+    {
         type: "line",
         data: {
             labels: [],
-            datasets: [
-                { label: "Positive", data: [], borderWidth: 2 },
-                { label: "Negative", data: [], borderWidth: 2 },
-                { label: "Neutral", data: [], borderWidth: 2 }
-            ]
-        },
-        options: {
-            responsive: true
+            datasets: [{
+                label: "Confidence %",
+                data: []
+            }]
         }
-    });
-};
-
-
-// -----------------------------
-// SINGLE REVIEW ANALYSIS
-// -----------------------------
-async function analyzeReview() {
-
-    const review = document.getElementById("review").value;
-
-    if (!review) {
-        alert("Please enter a review!");
-        return;
     }
+);
 
-    document.getElementById("result").innerHTML = "⏳ Analyzing...";
+/* THEME */
 
-    try {
-        const response = await fetch("http://127.0.0.1:8000/predict", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ text: review })
-        });
+function toggleTheme() {
 
-        const data = await response.json();
-
-        if (data.error) {
-            document.getElementById("result").innerHTML = "❌ " + data.error;
-            return;
-        }
-
-        // Update result
-        document.getElementById("result").innerHTML =
-            `Sentiment: ${data.sentiment} <br> Confidence: ${data.confidence}%`;
-
-        // Update counts
-        if (data.sentiment.includes("Positive")) positiveCount++;
-        else if (data.sentiment.includes("Negative")) negativeCount++;
-        else neutralCount++;
-
-        updateDashboard();
-
-    } catch (error) {
-        document.getElementById("result").innerHTML =
-            "⚠️ Error connecting to backend!";
-    }
+    document.body.classList.toggle(
+        "light"
+    );
 }
 
+/* ANALYZE */
 
-// -----------------------------
-// CSV UPLOAD ANALYSIS
-// -----------------------------
-async function uploadCSV() {
+async function analyzeSentiment() {
 
-    const fileInput = document.getElementById("csvFile");
-    const file = fileInput.files[0];
+    const review =
+        document.getElementById(
+            "reviewInput"
+        ).value;
 
-    if (!file) {
-        alert("Please select a CSV file!");
+    if (!review.trim()) {
+
+        alert(
+            "Please enter a review"
+        );
+
         return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-
-    document.getElementById("result").innerHTML = "⏳ Processing CSV...";
+    document.getElementById(
+        "loadingText"
+    ).innerText = "Analyzing...";
 
     try {
-        const response = await fetch("http://127.0.0.1:8000/upload_csv", {
-            method: "POST",
-            body: formData
-        });
 
-        const data = await response.json();
+        const response = await fetch(
+            "http://127.0.0.1:8000/predict",
+            {
+                method: "POST",
 
-        if (data.error) {
-            document.getElementById("result").innerHTML = "❌ " + data.error;
-            return;
-        }
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
 
-        // Update counts
-        positiveCount += data.positive;
-        negativeCount += data.negative;
-        neutralCount += data.neutral;
+                body: JSON.stringify({
+                    text: review
+                })
+            }
+        );
 
-        updateDashboard();
+        const data =
+            await response.json();
 
-        // UPDATE TREND GRAPH
-        const now = new Date().toLocaleTimeString();
+        document.getElementById(
+            "loadingText"
+        ).innerText = "";
 
-        trendChart.data.labels.push(now);
-        trendChart.data.datasets[0].data.push(data.positive);
-        trendChart.data.datasets[1].data.push(data.negative);
-        trendChart.data.datasets[2].data.push(data.neutral);
+        document.getElementById(
+            "sentimentText"
+        ).innerText =
+            data.sentiment;
 
-        trendChart.update();
+        document.getElementById(
+            "confidenceText"
+        ).innerText =
+            "Confidence: " +
+            (data.confidence * 100)
+            .toFixed(2) + "%";
 
-        // KEYWORDS
-        const keywordsList = document.getElementById("keywords");
-        keywordsList.innerHTML = "";
+        document.getElementById(
+            "meterFill"
+        ).style.width =
+            (data.confidence * 100) + "%";
 
-        if (data.keywords) {
-            data.keywords.forEach(word => {
-                const li = document.createElement("li");
-                li.innerText = word;
-                keywordsList.appendChild(li);
+        let emoji = "😐";
+
+        if (
+            data.sentiment ===
+            "Positive"
+        ) {
+
+            emoji = "😊";
+
+            positiveCount++;
+
+            bestReview = review;
+
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
             });
+
+            document.getElementById(
+                "positiveCountText"
+            ).innerText =
+                positiveCount;
         }
 
-        // INSIGHTS
-        if (data.insight) {
-            document.getElementById("insights").innerText = data.insight;
+        else if (
+            data.sentiment ===
+            "Negative"
+        ) {
+
+            emoji = "😡";
+
+            negativeCount++;
+
+            worstReview = review;
+
+            document.getElementById(
+                "negativeCountText"
+            ).innerText =
+                negativeCount;
         }
 
-        document.getElementById("result").innerHTML =
-            "✅ CSV Analysis Completed!";
+        else {
 
-    } catch (error) {
-        document.getElementById("result").innerHTML =
-            "⚠️ Error connecting to backend!";
+            neutralCount++;
+
+            document.getElementById(
+                "neutralCountText"
+            ).innerText =
+                neutralCount;
+        }
+
+        document.getElementById(
+            "emoji"
+        ).innerText = emoji;
+
+        const resultBox =
+            document.getElementById(
+                "resultBox"
+            );
+
+        if (
+            data.sentiment ===
+            "Positive"
+        ) {
+
+            resultBox.style.background =
+                "rgba(34,197,94,0.2)";
+        }
+
+        else if (
+            data.sentiment ===
+            "Negative"
+        ) {
+
+            resultBox.style.background =
+                "rgba(239,68,68,0.2)";
+        }
+
+        else {
+
+            resultBox.style.background =
+                "rgba(148,163,184,0.2)";
+        }
+
+        let insight = "";
+
+        if (
+            data.sentiment ===
+            "Positive"
+        ) {
+
+            insight =
+                "Users are highly satisfied with the service.";
+        }
+
+        else if (
+            data.sentiment ===
+            "Negative"
+        ) {
+
+            insight =
+                "Users are facing issues with the service.";
+        }
+
+        else {
+
+            insight =
+                "Users have mixed opinions.";
+        }
+
+        document.getElementById(
+            "aiInsight"
+        ).innerText = insight;
+
+        updateCharts(
+            data.confidence
+        );
+
+        const historyItem =
+            `${review} → ${data.sentiment}`;
+
+        const li =
+            document.createElement("li");
+
+        li.innerText =
+            historyItem;
+
+        document.getElementById(
+            "historyList"
+        ).appendChild(li);
+
+        let history =
+            JSON.parse(
+                localStorage.getItem(
+                    "sentimentHistory"
+                )
+            ) || [];
+
+        history.push(historyItem);
+
+        localStorage.setItem(
+            "sentimentHistory",
+            JSON.stringify(history)
+        );
+
+        totalReviews++;
+
+        document.getElementById(
+            "reviewCount"
+        ).innerText =
+            totalReviews;
+
+        /* PERCENTAGES */
+
+        const positivePercent =
+        (
+            positiveCount /
+            totalReviews
+        ) * 100;
+
+        const negativePercent =
+        (
+            negativeCount /
+            totalReviews
+        ) * 100;
+
+        const neutralPercent =
+        (
+            neutralCount /
+            totalReviews
+        ) * 100;
+
+        document.getElementById(
+            "positivePercent"
+        ).innerText =
+            positivePercent.toFixed(1) + "%";
+
+        document.getElementById(
+            "negativePercent"
+        ).innerText =
+            negativePercent.toFixed(1) + "%";
+
+        document.getElementById(
+            "neutralPercent"
+        ).innerText =
+            neutralPercent.toFixed(1) + "%";
+
+        /* SMART SUMMARY */
+
+        document.getElementById(
+            "smartSummary"
+        ).innerText =
+
+`Best Review:
+${bestReview || "No positive review yet"}
+
+Worst Review:
+${worstReview || "No negative review yet"}`;
+
+        document.getElementById(
+            "resultBox"
+        ).scrollIntoView({
+
+            behavior: "smooth"
+        });
+
+    }
+
+    catch (error) {
+
+        console.log(error);
+
+        alert(
+            "Backend connection error"
+        );
     }
 }
 
+/* UPDATE CHARTS */
 
-// -----------------------------
-// UPDATE DASHBOARD
-// -----------------------------
-function updateDashboard() {
+function updateCharts(confidence) {
 
-    document.getElementById("posCount").innerText = positiveCount;
-    document.getElementById("negCount").innerText = negativeCount;
-    document.getElementById("neuCount").innerText = neutralCount;
+    pieChart.data.datasets[0].data = [
 
-    sentimentChart.data.datasets[0].data = [
         positiveCount,
+
         negativeCount,
+
         neutralCount
     ];
 
-    sentimentChart.update();
+    pieChart.update();
+
+    lineChart.data.labels.push(
+
+        lineChart.data.labels.length + 1
+    );
+
+    lineChart.data.datasets[0].data.push(
+
+        (confidence * 100)
+        .toFixed(2)
+    );
+
+    lineChart.update();
 }
+
+/* VOICE */
+
+function startVoice() {
+
+    const SpeechRecognition =
+
+        window.SpeechRecognition ||
+
+        window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+
+        alert(
+            "Voice recognition not supported"
+        );
+
+        return;
+    }
+
+    const recognition =
+        new SpeechRecognition();
+
+    recognition.lang = "en-US";
+
+    recognition.start();
+
+    recognition.onresult =
+        function (event) {
+
+            const transcript =
+
+                event.results[0][0]
+                .transcript;
+
+            document.getElementById(
+                "reviewInput"
+            ).value = transcript;
+        };
+}
+
+/* DOWNLOAD REPORT */
+
+function downloadReport() {
+
+    const review =
+        document.getElementById(
+            "reviewInput"
+        ).value;
+
+    const sentiment =
+        document.getElementById(
+            "sentimentText"
+        ).innerText;
+
+    const confidence =
+        document.getElementById(
+            "confidenceText"
+        ).innerText;
+
+    if (
+        review.trim() === "" ||
+        sentiment.trim() === ""
+    ) {
+
+        alert(
+            "Please analyze review first"
+        );
+
+        return;
+    }
+
+    const reportText =
+
+`
+DRIVER FEEDBACK REPORT
+
+Review:
+${review}
+
+Sentiment:
+${sentiment}
+
+${confidence}
+
+AI Insight:
+${document.getElementById("aiInsight").innerText}
+`;
+
+    const blob =
+        new Blob(
+            [reportText],
+            {
+                type:
+                "text/plain"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    a.href = url;
+
+    a.download =
+        "AI_Report.txt";
+
+    a.click();
+}
+
+/* EXPORT CSV */
+
+function exportCSV() {
+
+    let csvContent =
+        "Review,Sentiment\n";
+
+    const historyItems =
+        document.querySelectorAll(
+            "#historyList li"
+        );
+
+    historyItems.forEach(item => {
+
+        const row =
+            item.innerText
+            .replace(" → ", ",");
+
+        csvContent += row + "\n";
+    });
+
+    const blob =
+        new Blob(
+            [csvContent],
+            {
+                type: "text/csv"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    a.href = url;
+
+    a.download =
+        "Sentiment_History.csv";
+
+    a.click();
+}
+
+/* CLEAR */
+
+function clearAll() {
+
+    document.getElementById(
+        "reviewInput"
+    ).value = "";
+
+    document.getElementById(
+        "sentimentText"
+    ).innerText = "";
+
+    document.getElementById(
+        "confidenceText"
+    ).innerText = "";
+
+    document.getElementById(
+        "emoji"
+    ).innerText = "😊";
+
+    document.getElementById(
+        "meterFill"
+    ).style.width = "0%";
+
+    document.getElementById(
+        "aiInsight"
+    ).innerText =
+        "Waiting for analysis...";
+}
+
+/* DATE TIME */
+
+setInterval(() => {
+
+    const now = new Date();
+
+    document.getElementById(
+        "dateTime"
+    ).innerText =
+        now.toLocaleString();
+
+}, 1000);
+
+/* TYPING EFFECT */
+
+const titleText =
+"Driver Feedback Intelligence AI";
+
+let i = 0;
+
+function typingEffect() {
+
+    if (
+        i < titleText.length
+    ) {
+
+        document.getElementById(
+            "typingTitle"
+        ).innerHTML +=
+            titleText.charAt(i);
+
+        i++;
+
+        setTimeout(
+            typingEffect,
+            100
+        );
+    }
+}
+
+typingEffect();
+
+/* LOAD HISTORY */
+
+window.onload = function () {
+
+    const history =
+        JSON.parse(
+            localStorage.getItem(
+                "sentimentHistory"
+            )
+        ) || [];
+
+    history.forEach(item => {
+
+        const li =
+            document.createElement("li");
+
+        li.innerText = item;
+
+        document.getElementById(
+            "historyList"
+        ).appendChild(li);
+    });
+};

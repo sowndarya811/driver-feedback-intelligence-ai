@@ -1,58 +1,126 @@
+import os
 import pandas as pd
 import numpy as np
 import pickle
 
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, LSTM, Dense
 
-# Load dataset
-df = pd.read_csv("dataset/reviews.csv")
+# -----------------------------
+# 📁 PATH SETUP
+# -----------------------------
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Use correct column names
+# 👉 CHANGE FILE NAME HERE IF NEEDED
+DATA_PATH = os.path.join(BASE_DIR, "datasets", "balanced_review.csv")
+
+MODEL_DIR = os.path.join(BASE_DIR, "backend", "model")
+
+# Create model folder if not exists
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+# -----------------------------
+# 🔍 DEBUG INFO
+# -----------------------------
+print("📂 DATA PATH:", DATA_PATH)
+print("📁 DATASET FOLDER EXISTS:", os.path.exists(os.path.join(BASE_DIR, "datasets")))
+
+if os.path.exists(os.path.join(BASE_DIR, "datasets")):
+    print("📄 FILES INSIDE DATASETS:", os.listdir(os.path.join(BASE_DIR, "datasets")))
+
+print("📄 FILE EXISTS:", os.path.exists(DATA_PATH))
+
+# -----------------------------
+# ❌ STOP IF FILE NOT FOUND
+# -----------------------------
+if not os.path.exists(DATA_PATH):
+    raise FileNotFoundError("❌ Dataset file not found. Check file name and path!")
+
+# -----------------------------
+# 📊 LOAD DATASET
+# -----------------------------
+print("📊 Loading dataset...")
+df = pd.read_csv(DATA_PATH)
+
+# -----------------------------
+# 🧹 CLEAN DATA
+# -----------------------------
+# Fix column names if needed
+df = df.rename(columns={
+    "review": "Review",
+    "sentiment": "Sentiment"
+})
+
+# Remove empty rows
+df = df.dropna()
+
+# Ensure correct columns exist
+if "Review" not in df.columns or "Sentiment" not in df.columns:
+    raise ValueError("❌ Dataset must contain 'Review' and 'Sentiment' columns")
+
 texts = df["Review"].astype(str)
+labels = df["Sentiment"].astype(str)
 
-# Convert sentiment to numbers
-label_map = {"Positive": 2, "Neutral": 1, "Negative": 0}
-labels = df["Sentiment"].map(label_map)
+print("✅ Dataset Loaded:", len(df))
 
-# Tokenization
+# -----------------------------
+# 🔠 ENCODE LABELS
+# -----------------------------
+label_encoder = LabelEncoder()
+y = label_encoder.fit_transform(labels)
+
+# -----------------------------
+# 🧠 TOKENIZATION
+# -----------------------------
 tokenizer = Tokenizer(num_words=5000)
 tokenizer.fit_on_texts(texts)
 
-sequences = tokenizer.texts_to_sequences(texts)
-X = pad_sequences(sequences, maxlen=100)
+X = tokenizer.texts_to_sequences(texts)
+X = pad_sequences(X, maxlen=100)
 
-y = np.array(labels)
-
-# Split data
+# -----------------------------
+# ✂️ TRAIN TEST SPLIT
+# -----------------------------
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# Build LSTM model
-model = Sequential()
-model.add(Embedding(5000, 128, input_length=100))
-model.add(LSTM(64))
-model.add(Dense(32, activation="relu"))
-model.add(Dense(3, activation="softmax"))
+# -----------------------------
+# 🤖 MODEL BUILDING
+# -----------------------------
+model = Sequential([
+    Embedding(input_dim=5000, output_dim=64, input_length=100),
+    LSTM(64),
+    Dense(32, activation='relu'),
+    Dense(1, activation='sigmoid')
+])
 
 model.compile(
-    loss="sparse_categorical_crossentropy",
-    optimizer="adam",
-    metrics=["accuracy"]
+    loss='binary_crossentropy',
+    optimizer='adam',
+    metrics=['accuracy']
 )
 
-# Train
-model.fit(X_train, y_train, epochs=5, batch_size=32)
+# -----------------------------
+# 🏋️ TRAIN MODEL
+# -----------------------------
+print("🚀 Training started...")
+model.fit(X_train, y_train, epochs=3, batch_size=32)
 
-# Save model
-model.save("backend/model/sentiment_model.h5")
+# -----------------------------
+# 💾 SAVE FILES
+# -----------------------------
+model.save(os.path.join(MODEL_DIR, "sentiment_model.h5"))
 
-# Save tokenizer
-with open("backend/model/tokenizer.pkl", "wb") as f:
+with open(os.path.join(MODEL_DIR, "tokenizer.pkl"), "wb") as f:
     pickle.dump(tokenizer, f)
 
-print("✅ Model training completed and saved!")
+with open(os.path.join(MODEL_DIR, "label_encoder.pkl"), "wb") as f:
+    pickle.dump(label_encoder, f)
+
+print("✅ Model, Tokenizer, Label Encoder saved successfully!")
